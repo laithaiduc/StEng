@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VocabMaster - Học Từ Vựng Tiếng Anh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+
+  <!-- Sidebar -->
+  <nav id="sidebar">
+    <!-- Logo/branding at top -->
+    <div class="sidebar-brand">📚 VocabMaster</div>
+    
+    <!-- Navigation items -->
+    <ul class="nav-list">
+      <li class="nav-item active" data-nav="home"><span class="nav-icon">🏠</span> Trang chủ</li>
+      <li class="nav-item" data-nav="review"><span class="nav-icon">🔄</span> Ôn tập <span id="review-badge" class="badge hidden">0</span></li>
+    </ul>
+    
+    <!-- Theme toggle at bottom -->
+    <div class="sidebar-footer">
+      <button id="theme-toggle" class="theme-btn">🌙 Dark Mode</button>
+    </div>
+  </nav>
+
+  <!-- Mobile sidebar toggle -->
+  <button id="sidebar-toggle" class="sidebar-toggle-btn">☰</button>
+
+  <!-- Main content area -->
+  <main id="main-content">
+    
+    <!-- Screen 1: Home (data-screen="home") -->
+    <section id="home-screen" class="screen active" data-screen="home">
+      <div class="screen-header">
+        <h1>Thư mục từ vựng</h1>
+        <div class="header-actions">
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="Tìm kiếm thư mục...">
+          </div>
+          <button id="create-folder-btn" class="btn btn-primary">+ Tạo thư mục</button>
+        </div>
+      </div>
+      <div id="folder-grid" class="folder-grid">
+        <!-- Folder cards rendered by JS -->
+        <!-- Empty state when no folders -->
+        <div id="empty-state" class="empty-state">
+          <div class="empty-icon">📂</div>
+          <h3>Chưa có thư mục nào</h3>
+          <p>Tạo thư mục đầu tiên để bắt đầu học từ vựng!</p>
+          <button class="btn btn-primary" onclick="document.getElementById('create-folder-btn').click()">+ Tạo thư mục</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 2: Folder Detail (data-screen="folder") -->
+    <section id="folder-screen" class="screen" data-screen="folder">
+      <div class="screen-header">
+        <button id="back-to-home" class="btn btn-ghost">← Quay lại</button>
+        <div class="folder-info">
+          <span id="folder-emoji" class="folder-emoji-display">📁</span>
+          <h1 id="folder-title">Folder Name</h1>
+          <span id="folder-word-count" class="word-count">0 từ</span>
+        </div>
+        <div class="header-actions">
+          <button id="edit-folder-btn" class="btn btn-ghost" title="Chỉnh sửa">✏️</button>
+          <button id="delete-folder-btn" class="btn btn-ghost btn-danger" title="Xóa">🗑️</button>
+        </div>
+      </div>
+      
+      <!-- Game buttons row -->
+      <div class="game-buttons">
+        <button id="play-flashcard-btn" class="game-btn" disabled>
+          <span class="game-icon">🃏</span>
+          <span>Flashcard</span>
+        </button>
+        <button id="play-quiz-btn" class="game-btn" disabled>
+          <span class="game-icon">📝</span>
+          <span>Trắc nghiệm</span>
+        </button>
+        <button id="play-match-btn" class="game-btn" disabled>
+          <span class="game-icon">🔗</span>
+          <span>Ghép cặp</span>
+        </button>
+        <button id="play-listening-btn" class="game-btn" disabled>
+          <span class="game-icon">🎧</span>
+          <span>Nghe viết</span>
+        </button>
+      </div>
+      
+      <!-- Word list -->
+      <div class="word-list-header">
+        <h2>Danh sách từ vựng</h2>
+        <div class="word-list-actions">
+          <button id="import-words-btn" class="btn btn-secondary">📥 Nhập nhiều từ</button>
+          <button id="add-word-btn" class="btn btn-primary">+ Thêm từ</button>
+        </div>
+      </div>
+      <div id="word-list" class="word-list">
+        <!-- Word cards rendered by JS -->
+        <div id="empty-words" class="empty-state">
+          <div class="empty-icon">📝</div>
+          <h3>Chưa có từ nào</h3>
+          <p>Thêm từ vựng đầu tiên vào thư mục này!</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 3: Flashcard (data-screen="flashcard") -->
+    <section id="flashcard-screen" class="screen" data-screen="flashcard">
+      <div class="game-header">
+        <button class="btn btn-ghost back-to-folder">← Quay lại</button>
+        <div class="game-progress">
+          <div id="flashcard-progress" class="progress-bar"><div class="progress-fill"></div></div>
+          <span id="flashcard-counter">0/0</span>
+        </div>
+      </div>
+      <div id="flashcard-container" class="flashcard-container">
+        <div id="flashcard-card" class="flashcard-card">
+          <div class="flashcard-inner">
+            <div id="flashcard-front" class="flashcard-face flashcard-front">
+              <div class="flashcard-word"></div>
+              <div class="flashcard-phonetic"></div>
+              <button class="pronounce-btn flashcard-pronounce">🔊</button>
+              <div class="flashcard-hint">Click để lật thẻ</div>
+            </div>
+            <div id="flashcard-back" class="flashcard-face flashcard-back">
+              <div class="flashcard-pos"></div>
+              <div class="flashcard-meaning"></div>
+              <div class="flashcard-example"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flashcard-actions">
+        <button id="dont-know-btn" class="btn btn-danger btn-lg">❌ Chưa nhớ</button>
+        <button id="know-btn" class="btn btn-success btn-lg">✅ Đã nhớ</button>
+      </div>
+    </section>
+
+    <!-- Screen 4: Quiz (data-screen="quiz") -->
+    <section id="quiz-screen" class="screen" data-screen="quiz">
+      <div class="game-header">
+        <button class="btn btn-ghost back-to-folder">← Quay lại</button>
+        <div class="game-progress">
+          <div id="quiz-progress" class="progress-bar"><div class="progress-fill"></div></div>
+          <span id="quiz-score">Điểm: 0</span>
+        </div>
+        <div id="quiz-timer" class="timer">⏱️ 15</div>
+      </div>
+      <div id="quiz-container" class="quiz-container">
+        <div id="quiz-question" class="quiz-question">Question goes here</div>
+        <div id="quiz-options" class="quiz-options">
+          <!-- 4 option buttons rendered by JS -->
+        </div>
+      </div>
+      <div id="quiz-result" class="game-result hidden">
+        <div class="result-icon">🎉</div>
+        <h2 class="result-title">Kết quả</h2>
+        <div class="result-score"></div>
+        <div class="result-details"></div>
+        <div class="result-actions">
+          <button class="btn btn-primary replay-btn">🔄 Chơi lại</button>
+          <button class="btn btn-secondary back-to-folder">← Quay lại</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 5: Match (data-screen="match") -->
+    <section id="match-screen" class="screen" data-screen="match">
+      <div class="game-header">
+        <button class="btn btn-ghost back-to-folder">← Quay lại</button>
+        <div class="game-stats">
+          <span id="match-pairs">Cặp: 0/0</span>
+          <span id="match-timer" class="timer">⏱️ 0.0s</span>
+        </div>
+      </div>
+      <div id="match-container" class="match-container">
+        <div id="match-grid" class="match-grid">
+          <!-- Match tiles rendered by JS -->
+        </div>
+      </div>
+      <div id="match-result" class="game-result hidden">
+        <div class="result-icon">🏆</div>
+        <h2 class="result-title">Hoàn thành!</h2>
+        <div class="result-score"></div>
+        <div class="result-actions">
+          <button class="btn btn-primary replay-btn">🔄 Chơi lại</button>
+          <button class="btn btn-secondary back-to-folder">← Quay lại</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 6: Listening (data-screen="listening") -->
+    <section id="listening-screen" class="screen" data-screen="listening">
+      <div class="game-header">
+        <button class="btn btn-ghost back-to-folder">← Quay lại</button>
+        <div class="game-progress">
+          <div id="listening-progress" class="progress-bar"><div class="progress-fill"></div></div>
+          <span id="listening-counter">0/0</span>
+        </div>
+      </div>
+      <div id="listening-container" class="listening-container">
+        <div class="listening-prompt">
+          <p>Nghe và gõ lại từ bạn nghe được:</p>
+          <div class="listening-audio-btns">
+            <button id="listening-play-btn" class="btn btn-primary btn-lg">🔊 Phát âm</button>
+            <button id="listening-slow-btn" class="btn btn-secondary">🐢 Chậm</button>
+          </div>
+        </div>
+        <div class="listening-input-area">
+          <input type="text" id="listening-input" class="input-lg" placeholder="Gõ từ bạn nghe được..." autocomplete="off">
+          <button id="listening-submit-btn" class="btn btn-primary">Kiểm tra</button>
+        </div>
+        <div id="listening-feedback" class="listening-feedback hidden"></div>
+        <button id="listening-hint-btn" class="btn btn-ghost">💡 Gợi ý</button>
+      </div>
+      <div id="listening-result" class="game-result hidden">
+        <div class="result-icon">🎧</div>
+        <h2 class="result-title">Kết quả</h2>
+        <div class="result-score"></div>
+        <div class="result-details"></div>
+        <div class="result-actions">
+          <button class="btn btn-primary replay-btn">🔄 Chơi lại</button>
+          <button class="btn btn-secondary back-to-folder">← Quay lại</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Screen 7: Review (data-screen="review") -->
+    <section id="review-screen" class="screen" data-screen="review">
+      <div class="screen-header">
+        <h1>🔄 Ôn tập từ sai</h1>
+        <p class="subtitle">Luyện lại các từ bạn đã trả lời sai</p>
+      </div>
+      <div id="review-container">
+        <div id="review-stats" class="review-stats">
+          <div class="stat-card">
+            <div class="stat-number" id="review-total">0</div>
+            <div class="stat-label">Tổng từ cần ôn</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="review-mastered">0</div>
+            <div class="stat-label">Đã thuộc</div>
+          </div>
+        </div>
+        
+        <div id="review-game-select" class="game-buttons">
+          <button id="review-flashcard-btn" class="game-btn" disabled>
+            <span class="game-icon">🃏</span><span>Flashcard</span>
+          </button>
+          <button id="review-quiz-btn" class="game-btn" disabled>
+            <span class="game-icon">📝</span><span>Trắc nghiệm</span>
+          </button>
+        </div>
+        
+        <div id="review-list" class="word-list">
+          <!-- Review word cards rendered by JS -->
+          <div id="empty-review" class="empty-state">
+            <div class="empty-icon">🎉</div>
+            <h3>Tuyệt vời!</h3>
+            <p>Không có từ nào cần ôn tập. Hãy chơi game để luyện thêm!</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modals -->
+  <!-- Overlay -->
+  <div id="modal-overlay" class="modal-overlay hidden"></div>
+
+  <!-- Create/Edit Folder Modal -->
+  <div id="folder-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="folder-modal-title">Tạo thư mục mới</h2>
+        <button class="modal-close" data-close-modal="folder-modal">✕</button>
+      </div>
+      <form id="folder-form">
+        <div class="form-group">
+          <label for="folder-name">Tên thư mục *</label>
+          <input type="text" id="folder-name" placeholder="Ví dụ: IELTS Vocabulary" required>
+        </div>
+        <div class="form-group">
+          <label for="folder-desc">Mô tả</label>
+          <textarea id="folder-desc" placeholder="Mô tả ngắn về thư mục..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="folder-emoji">Biểu tượng</label>
+            <input type="text" id="folder-emoji" value="📁" maxlength="2">
+          </div>
+          <div class="form-group">
+            <label for="folder-color">Màu sắc</label>
+            <input type="color" id="folder-color" value="#6C63FF">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="folder-modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu thư mục</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add/Edit Word Modal -->
+  <div id="word-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2 id="word-modal-title">Thêm từ mới</h2>
+        <button class="modal-close" data-close-modal="word-modal">✕</button>
+      </div>
+      <form id="word-form">
+        <div class="form-group">
+          <label for="word-english">Từ tiếng Anh *</label>
+          <div class="input-with-suggest">
+            <input type="text" id="word-english" placeholder="Nhập từ tiếng Anh..." required autocomplete="off">
+            <button type="button" id="word-pronounce-preview" class="btn btn-ghost">🔊</button>
+          </div>
+          <!-- Auto-suggest panel -->
+          <div id="auto-suggest-panel" class="auto-suggest-panel hidden">
+            <div id="suggest-loading" class="suggest-loading hidden">
+              <div class="skeleton"></div>
+              <div class="skeleton skeleton-short"></div>
+            </div>
+            <div id="suggest-results"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="word-meaning">Nghĩa tiếng Việt *</label>
+          <input type="text" id="word-meaning" placeholder="Nhập nghĩa tiếng Việt..." required>
+        </div>
+        <div class="form-group">
+          <label for="word-type">Từ loại</label>
+          <select id="word-type">
+            <option value="">-- Chọn từ loại --</option>
+            <option value="noun">Noun (Danh từ)</option>
+            <option value="verb">Verb (Động từ)</option>
+            <option value="adjective">Adjective (Tính từ)</option>
+            <option value="adverb">Adverb (Trạng từ)</option>
+            <option value="preposition">Preposition (Giới từ)</option>
+            <option value="conjunction">Conjunction (Liên từ)</option>
+            <option value="pronoun">Pronoun (Đại từ)</option>
+            <option value="interjection">Interjection (Thán từ)</option>
+            <option value="phrase">Phrase (Cụm từ)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="word-phonetic">Phiên âm</label>
+          <input type="text" id="word-phonetic" placeholder="/fəˈnɛtɪk/">
+        </div>
+        <div class="form-group">
+          <label for="word-example">Ví dụ</label>
+          <textarea id="word-example" placeholder="Câu ví dụ sử dụng từ này..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="word-note">Ghi chú</label>
+          <textarea id="word-note" placeholder="Ghi chú thêm, từ đồng nghĩa/trái nghĩa..."></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="word-modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Lưu từ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Import Words Modal -->
+  <div id="import-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Nhập nhiều từ</h2>
+        <button class="modal-close" data-close-modal="import-modal">✕</button>
+      </div>
+      <div class="import-info">
+        <p>Nhập mỗi từ trên một dòng, ngăn cách từ và nghĩa bằng dấu <strong>tab</strong> hoặc <strong> - </strong></p>
+        <p class="import-example">Ví dụ: apple - táo<br>banana - chuối<br>cat - con mèo</p>
+      </div>
+      <form id="import-form">
+        <div class="form-group">
+          <textarea id="import-text" rows="10" placeholder="apple - táo&#10;banana - chuối&#10;cat - con mèo"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal="import-modal">Hủy</button>
+          <button type="submit" class="btn btn-primary">Nhập từ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Delete Modal -->
+  <div id="confirm-modal" class="modal hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>Xác nhận</h2>
+      </div>
+      <p id="confirm-message">Bạn có chắc muốn xóa?</p>
+      <div class="form-actions">
+        <button id="confirm-cancel" class="btn btn-secondary">Hủy</button>
+        <button id="confirm-ok" class="btn btn-danger">Xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
