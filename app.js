@@ -748,12 +748,14 @@ class AutoSuggest {
         }, 500);
       });
 
-      // Close panel on click outside
+      // Close panel on click outside input area
       document.addEventListener('click', (e) => {
         const panel = document.getElementById('auto-suggest-panel');
         const inputArea = document.querySelector('.input-with-suggest');
-        if (panel && inputArea && !inputArea.contains(e.target) && !panel.contains(e.target)) {
-          this.hidePanel();
+        if (panel && !panel.classList.contains('hidden')) {
+          if (inputArea && !inputArea.contains(e.target)) {
+            this.hidePanel();
+          }
         }
       });
 
@@ -764,6 +766,14 @@ class AutoSuggest {
         }
       });
     }
+
+    // Auto-close panel when any other form control receives focus
+    const otherFormControls = document.querySelectorAll('#word-form input:not(#word-english), #word-form select, #word-form textarea');
+    otherFormControls.forEach(control => {
+      control.addEventListener('focus', () => {
+        this.hidePanel();
+      });
+    });
   }
 
   hidePanel() {
@@ -802,11 +812,29 @@ class AutoSuggest {
     const panel = document.getElementById('auto-suggest-panel');
     const results = document.getElementById('suggest-results');
     panel.classList.remove('hidden');
+
+    const safeWord = String(word).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
     results.innerHTML = `
-      <div class="suggest-not-found">
-        <span>😕</span> Không tìm thấy "<strong>${word}</strong>" trong từ điển. Bạn có thể nhập thủ công.
+      <div class="suggest-not-found" id="suggest-not-found-msg" title="Click để đóng và nhập nghĩa thủ công">
+        <div class="suggest-not-found-text">
+          <span>😕</span> Không tìm thấy "<strong>${safeWord}</strong>" trong từ điển. Bạn có thể nhập thủ công.
+        </div>
+        <button type="button" class="suggest-not-found-close" title="Đóng">✕</button>
       </div>
     `;
+
+    // Click anywhere on not-found box or close button dismisses panel and focuses Vietnamese meaning input
+    const notFoundMsg = document.getElementById('suggest-not-found-msg');
+    if (notFoundMsg) {
+      notFoundMsg.addEventListener('click', () => {
+        this.hidePanel();
+        const meaningInput = document.getElementById('word-meaning');
+        if (meaningInput) {
+          meaningInput.focus();
+        }
+      });
+    }
   }
 
   renderSuggestions(data) {
