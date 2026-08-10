@@ -162,6 +162,9 @@ class Router {
   }
 
   navigate(screenName) {
+    if (this.app && this.app.currentGame && typeof this.app.currentGame.destroy === 'function') {
+      this.app.currentGame.destroy();
+    }
     document.querySelectorAll('.screen').forEach(screen => {
       screen.classList.remove('active');
       screen.classList.add('hidden');
@@ -995,32 +998,94 @@ class FlashcardGame {
     this.currentIndex = 0;
     this.knownWords = [];
     this.unknownWords = [];
+    this.keyHandler = null;
   }
 
   start() {
     this.app.router.navigate('flashcard');
     this.updateProgress();
+    this.bindEvents();
+    this.setupKeyboard();
     this.showCard(this.currentIndex);
-    
+  }
+
+  bindEvents() {
     const card = document.getElementById('flashcard-card');
-    card.classList.remove('flipped');
-    
-    // Clear old listeners by cloning
-    const oldCard = document.getElementById('flashcard-card');
-    const newCard = oldCard.cloneNode(true);
-    oldCard.parentNode.replaceChild(newCard, oldCard);
-    
-    newCard.addEventListener('click', () => this.flipCard());
-    
+    if (card) {
+      const newCard = card.cloneNode(true);
+      card.parentNode.replaceChild(newCard, card);
+      newCard.addEventListener('click', () => this.flipCard());
+    }
+
+    const flipBtn = document.getElementById('flip-card-btn');
+    if (flipBtn) {
+      const newFlipBtn = flipBtn.cloneNode(true);
+      flipBtn.parentNode.replaceChild(newFlipBtn, flipBtn);
+      newFlipBtn.addEventListener('click', () => this.flipCard());
+    }
+
+    const prevBtn = document.getElementById('prev-card-btn');
+    if (prevBtn) {
+      const newPrevBtn = prevBtn.cloneNode(true);
+      prevBtn.parentNode.replaceChild(newPrevBtn, prevBtn);
+      newPrevBtn.addEventListener('click', () => this.prevCard());
+    }
+
+    const nextBtn = document.getElementById('next-card-btn');
+    if (nextBtn) {
+      const newNextBtn = nextBtn.cloneNode(true);
+      nextBtn.parentNode.replaceChild(newNextBtn, nextBtn);
+      newNextBtn.addEventListener('click', () => this.nextCard());
+    }
+
     const knowBtn = document.getElementById('know-btn');
-    const newKnowBtn = knowBtn.cloneNode(true);
-    knowBtn.parentNode.replaceChild(newKnowBtn, knowBtn);
-    newKnowBtn.addEventListener('click', () => this.markKnown());
-    
+    if (knowBtn) {
+      const newKnowBtn = knowBtn.cloneNode(true);
+      knowBtn.parentNode.replaceChild(newKnowBtn, knowBtn);
+      newKnowBtn.addEventListener('click', () => this.markKnown());
+    }
+
     const dontKnowBtn = document.getElementById('dont-know-btn');
-    const newDontKnowBtn = dontKnowBtn.cloneNode(true);
-    dontKnowBtn.parentNode.replaceChild(newDontKnowBtn, dontKnowBtn);
-    newDontKnowBtn.addEventListener('click', () => this.markUnknown());
+    if (dontKnowBtn) {
+      const newDontKnowBtn = dontKnowBtn.cloneNode(true);
+      dontKnowBtn.parentNode.replaceChild(newDontKnowBtn, dontKnowBtn);
+      newDontKnowBtn.addEventListener('click', () => this.markUnknown());
+    }
+  }
+
+  setupKeyboard() {
+    this.destroy();
+    
+    this.keyHandler = (e) => {
+      if (this.app.router.getCurrentScreen() !== 'flashcard') return;
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+      
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        this.prevCard();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        this.nextCard();
+      } else if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.flipCard();
+      } else if (e.key === '1' || e.key === 'x' || e.key === 'X') {
+        e.preventDefault();
+        this.markUnknown();
+      } else if (e.key === '2' || e.key === 'v' || e.key === 'V') {
+        e.preventDefault();
+        this.markKnown();
+      }
+    };
+    
+    document.addEventListener('keydown', this.keyHandler);
+  }
+
+  destroy() {
+    if (this.keyHandler) {
+      document.removeEventListener('keydown', this.keyHandler);
+      this.keyHandler = null;
+    }
   }
 
   showCard(index) {
@@ -1032,12 +1097,14 @@ class FlashcardGame {
     document.querySelector('.flashcard-front .flashcard-phonetic').textContent = word.phonetic || '';
     
     const pronounceBtn = document.querySelector('.flashcard-front .flashcard-pronounce');
-    const newPronounceBtn = pronounceBtn.cloneNode(true);
-    pronounceBtn.parentNode.replaceChild(newPronounceBtn, pronounceBtn);
-    newPronounceBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      pronounceWord(word.english);
-    });
+    if (pronounceBtn) {
+      const newPronounceBtn = pronounceBtn.cloneNode(true);
+      pronounceBtn.parentNode.replaceChild(newPronounceBtn, pronounceBtn);
+      newPronounceBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pronounceWord(word.english);
+      });
+    }
     
     const posEl = document.querySelector('.flashcard-back .flashcard-pos');
     if (word.type) {
@@ -1049,15 +1116,55 @@ class FlashcardGame {
     
     document.querySelector('.flashcard-back .flashcard-meaning').textContent = word.meaning;
     document.querySelector('.flashcard-back .flashcard-example').textContent = word.example ? `"${word.example}"` : '';
+
+    this.updateNavButtons();
+  }
+
+  updateNavButtons() {
+    const prevBtn = document.getElementById('prev-card-btn');
+    const nextBtn = document.getElementById('next-card-btn');
+    
+    if (prevBtn) {
+      prevBtn.disabled = (this.currentIndex === 0);
+    }
+    if (nextBtn) {
+      if (this.currentIndex === this.words.length - 1) {
+        nextBtn.textContent = 'Hoàn thành 🏁';
+      } else {
+        nextBtn.textContent = 'Thẻ tiếp →';
+      }
+    }
   }
 
   flipCard() {
     document.getElementById('flashcard-card').classList.toggle('flipped');
   }
 
+  prevCard() {
+    if (this.currentIndex > 0) {
+      this.currentIndex--;
+      this.showCard(this.currentIndex);
+      this.updateProgress();
+    }
+  }
+
+  nextCard() {
+    if (this.currentIndex < this.words.length - 1) {
+      this.currentIndex++;
+      this.showCard(this.currentIndex);
+      this.updateProgress();
+    } else {
+      this.finish();
+    }
+  }
+
   markKnown() {
     const word = this.words[this.currentIndex];
-    this.knownWords.push(word);
+    if (!this.knownWords.includes(word)) {
+      this.knownWords.push(word);
+      const unkIndex = this.unknownWords.indexOf(word);
+      if (unkIndex > -1) this.unknownWords.splice(unkIndex, 1);
+    }
     
     if (this.isReview) {
       this.app.dataManager.updateReviewItem(word.id || word.wordId, true);
@@ -1068,7 +1175,11 @@ class FlashcardGame {
 
   markUnknown() {
     const word = this.words[this.currentIndex];
-    this.unknownWords.push(word);
+    if (!this.unknownWords.includes(word)) {
+      this.unknownWords.push(word);
+      const knwIndex = this.knownWords.indexOf(word);
+      if (knwIndex > -1) this.knownWords.splice(knwIndex, 1);
+    }
     
     // Add to review
     this.app.dataManager.addToReview({
@@ -1088,27 +1199,17 @@ class FlashcardGame {
     this.nextCard();
   }
 
-  nextCard() {
-    this.currentIndex++;
-    this.updateProgress();
-    
-    if (this.currentIndex < this.words.length) {
-      this.showCard(this.currentIndex);
-    } else {
-      this.finish();
-    }
-  }
-
   updateProgress() {
     const progressFill = document.querySelector('#flashcard-progress .progress-fill');
     const counter = document.getElementById('flashcard-counter');
     
     const percent = ((this.currentIndex) / this.words.length) * 100;
-    progressFill.style.width = `${percent}%`;
-    counter.textContent = `${Math.min(this.currentIndex + 1, this.words.length)}/${this.words.length}`;
+    if (progressFill) progressFill.style.width = `${percent}%`;
+    if (counter) counter.textContent = `${Math.min(this.currentIndex + 1, this.words.length)}/${this.words.length}`;
   }
 
   finish() {
+    this.destroy();
     this.app.reviewManager.updateBadge();
     const percent = Math.round((this.knownWords.length / this.words.length) * 100);
     

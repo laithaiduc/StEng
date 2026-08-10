@@ -127,7 +127,7 @@
               <div class="flashcard-word"></div>
               <div class="flashcard-phonetic"></div>
               <button class="pronounce-btn flashcard-pronounce">🔊</button>
-              <div class="flashcard-hint">Click để lật thẻ</div>
+              <div class="flashcard-hint">Click để lật thẻ (hoặc phím Space)</div>
             </div>
             <div id="flashcard-back" class="flashcard-face flashcard-back">
               <div class="flashcard-pos"></div>
@@ -137,9 +137,16 @@
           </div>
         </div>
       </div>
-      <div class="flashcard-actions">
-        <button id="dont-know-btn" class="btn btn-danger btn-lg">❌ Chưa nhớ</button>
-        <button id="know-btn" class="btn btn-success btn-lg">✅ Đã nhớ</button>
+      <div class="flashcard-controls">
+        <div class="flashcard-nav-row">
+          <button id="prev-card-btn" class="btn btn-secondary">← Thẻ trước</button>
+          <button id="flip-card-btn" class="btn btn-secondary">🔄 Lật thẻ</button>
+          <button id="next-card-btn" class="btn btn-secondary">Thẻ tiếp →</button>
+        </div>
+        <div class="flashcard-actions">
+          <button id="dont-know-btn" class="btn btn-danger btn-lg">❌ Chưa nhớ (phím 1)</button>
+          <button id="know-btn" class="btn btn-success btn-lg">✅ Đã nhớ (phím 2)</button>
+        </div>
       </div>
     </section>
 
