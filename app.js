@@ -149,6 +149,34 @@ class DataManager {
     settings[key] = value;
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   }
+
+  getAllWords() {
+    const folders = this.getFolders();
+    const wordMap = new Map();
+    
+    folders.forEach(f => {
+      if (f.words && Array.isArray(f.words)) {
+        f.words.forEach(w => {
+          if (w && w.meaning) {
+            const key = ((w.id || w.wordId || w.english) + '_' + w.meaning).trim();
+            wordMap.set(key, w);
+          }
+        });
+      }
+    });
+    
+    const reviews = this.getReviewList();
+    reviews.forEach(w => {
+      if (w && w.meaning) {
+        const key = ((w.id || w.wordId || w.english) + '_' + w.meaning).trim();
+        if (!wordMap.has(key)) {
+          wordMap.set(key, w);
+        }
+      }
+    });
+    
+    return Array.from(wordMap.values());
+  }
 }
 
 // ============================================
@@ -1235,10 +1263,23 @@ class FlashcardGame {
 // QUIZ GAME
 // ============================================
 
+const FALLBACK_DISTRACTORS = [
+  'Cải thiện', 'Thành công', 'Thách thức', 'Phát triển', 'Cơ hội',
+  'Quan trọng', 'Trách nhiệm', 'Bảo vệ', 'Hợp tác', 'Đánh giá',
+  'Thay đổi', 'Giải quyết', 'Duy trì', 'Khám phá', 'Tập trung',
+  'Hỗ trợ', 'Mô tả', 'Thực hiện', 'Yêu cầu', 'Cung cấp',
+  'Ảnh hưởng', 'Giải thích', 'Tạo ra', 'Phân tích', 'Chuẩn bị',
+  'Đề xuất', 'Kế hoạch', 'Xác định', 'Bắt đầu', 'Hoàn thành',
+  'Hy vọng', 'Đạt được', 'Trao đổi', 'Xây dựng', 'Đóng góp',
+  'Tổ chức', 'Điều chỉnh', 'Mở rộng', 'Giới hạn', 'Phát minh',
+  'Tuyên bố', 'Tăng cường', 'Khuyến khích', 'Từ chối', 'Chấp nhận',
+  'Phản ánh', 'Tuyên truyền', 'Thích ứng', 'Trải nghiệm', 'Tương tác'
+];
+
 class QuizGame {
   constructor(app, words, isReview = false) {
     this.app = app;
-    this.allWords = [...words]; // All available words to pick wrong options from
+    this.allWords = [...words]; // Available quiz target words
     this.questions = [];
     this.isReview = isReview;
     this.currentIndex = 0;
@@ -1255,19 +1296,48 @@ class QuizGame {
   }
 
   generateQuestion(targetWord) {
-    const options = [{ text: targetWord.meaning, isCorrect: true }];
-    const wrongWords = this.allWords.filter(w => w.id !== targetWord.id && w.meaning !== targetWord.meaning);
-    const shuffledWrong = wrongWords.sort(() => Math.random() - 0.5).slice(0, 3);
-    
-    shuffledWrong.forEach(w => {
-      options.push({ text: w.meaning, isCorrect: false });
+    const targetMeaning = (targetWord.meaning || '').trim();
+    const options = [{ text: targetMeaning, isCorrect: true }];
+    const addedTexts = new Set([targetMeaning.toLowerCase()]);
+
+    // 1. Gather wrong options from all vocabulary across the entire app
+    const allAppWords = (this.app && this.app.dataManager && typeof this.app.dataManager.getAllWords === 'function')
+      ? this.app.dataManager.getAllWords()
+      : this.allWords;
+
+    const wrongWords = allAppWords.filter(w => {
+      if (!w || !w.meaning) return false;
+      const textNorm = w.meaning.trim().toLowerCase();
+      const targetId = targetWord.id || targetWord.wordId;
+      const wordId = w.id || w.wordId;
+      if (targetId && wordId && targetId === wordId) return false;
+      return textNorm !== targetMeaning.toLowerCase();
     });
-    
-    // If not enough wrong options in folder, generate dummy ones
-    while (options.length < 4) {
-      options.push({ text: `Lựa chọn ngẫu nhiên ${options.length}`, isCorrect: false });
+
+    const shuffledWrong = wrongWords.sort(() => Math.random() - 0.5);
+
+    for (const w of shuffledWrong) {
+      const textNorm = w.meaning.trim().toLowerCase();
+      if (!addedTexts.has(textNorm)) {
+        addedTexts.add(textNorm);
+        options.push({ text: w.meaning.trim(), isCorrect: false });
+      }
+      if (options.length >= 4) break;
     }
-    
+
+    // 2. If options < 4, generate realistic Vietnamese distractors
+    if (options.length < 4) {
+      const shuffledFallback = [...FALLBACK_DISTRACTORS].sort(() => Math.random() - 0.5);
+      for (const distractor of shuffledFallback) {
+        const textNorm = distractor.trim().toLowerCase();
+        if (!addedTexts.has(textNorm)) {
+          addedTexts.add(textNorm);
+          options.push({ text: distractor.trim(), isCorrect: false });
+        }
+        if (options.length >= 4) break;
+      }
+    }
+
     return {
       word: targetWord,
       options: options.sort(() => Math.random() - 0.5)
@@ -1305,7 +1375,7 @@ class QuizGame {
       btn.className = 'quiz-option';
       btn.textContent = opt.text;
       btn.dataset.index = i;
-      btn.addEventListener('click', () => this.selectAnswer(opt.text, btn));
+      btn.addEventListener('click', () => this.selectAnswer(opt, btn));
       optionsContainer.appendChild(btn);
     });
     
@@ -1337,9 +1407,10 @@ class QuizGame {
     
     const q = this.questions[this.currentIndex];
     
-    // Highlight correct
+    // Highlight correct option
     buttons.forEach(btn => {
-      if (btn.textContent === q.word.meaning) {
+      const idx = btn.dataset.index;
+      if (q.options[idx] && q.options[idx].isCorrect) {
         btn.classList.add('correct');
       }
     });
@@ -1349,14 +1420,14 @@ class QuizGame {
     setTimeout(() => this.nextQuestion(), 1500);
   }
 
-  selectAnswer(selectedText, btnEl) {
+  selectAnswer(selectedOpt, btnEl) {
     clearInterval(this.timer);
     const optionsContainer = document.getElementById('quiz-options');
     const buttons = Array.from(optionsContainer.querySelectorAll('.quiz-option'));
     buttons.forEach(btn => btn.disabled = true);
     
     const q = this.questions[this.currentIndex];
-    const isCorrect = selectedText === q.word.meaning;
+    const isCorrect = !!selectedOpt.isCorrect;
     
     if (isCorrect) {
       btnEl.classList.add('correct');
@@ -1366,9 +1437,10 @@ class QuizGame {
       }
     } else {
       btnEl.classList.add('wrong');
-      // Find correct and highlight
+      // Highlight correct button
       buttons.forEach(btn => {
-        if (btn.textContent === q.word.meaning) {
+        const idx = btn.dataset.index;
+        if (q.options[idx] && q.options[idx].isCorrect) {
           btn.classList.add('correct');
         }
       });
@@ -1376,6 +1448,10 @@ class QuizGame {
     }
     
     setTimeout(() => this.nextQuestion(), 1500);
+  }
+
+  destroy() {
+    clearInterval(this.timer);
   }
 
   recordWrongAnswer(word) {
@@ -1777,7 +1853,7 @@ class ReviewManager {
     } else {
       emptyState.classList.add('hidden');
       if (flashcardBtn) flashcardBtn.disabled = false;
-      if (quizBtn) quizBtn.disabled = reviews.length < 4;
+      if (quizBtn) quizBtn.disabled = false;
       
       container.innerHTML = reviews.map(word => `
         <div class="word-card">
@@ -1807,10 +1883,6 @@ class ReviewManager {
       this.app.currentGame = game;
       game.start();
     } else if (gameType === 'quiz') {
-      if (reviews.length < 4) {
-        showToast('Cần ít nhất 4 từ để chơi Quiz', 'error');
-        return;
-      }
       const game = new QuizGame(this.app, reviews, true);
       this.app.currentGame = game;
       game.start();
@@ -1989,7 +2061,7 @@ class App {
     };
 
     setupGameBtn('play-flashcard-btn', FlashcardGame, 1);
-    setupGameBtn('play-quiz-btn', QuizGame, 4);
+    setupGameBtn('play-quiz-btn', QuizGame, 1);
     setupGameBtn('play-match-btn', MatchGame, 4);
     setupGameBtn('play-listening-btn', ListeningGame, 1);
 
